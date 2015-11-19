@@ -4,6 +4,12 @@ Ahab
 
 .. image:: ahab.png
 
+It's easy to install Ahab:
+
+.. code:: bash
+
+    pip install ahab
+
 To get detailed information about Docker events from the command line:
 
 .. code:: bash
