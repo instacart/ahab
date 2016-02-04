@@ -19,22 +19,26 @@ class Ahab(object):
     def listen(self):
         client = docker.Client(base_url=self.url)
         for event in client.events(decode=True):
-            if 'time' in event:
-                event['time'] = datetime.fromtimestamp(event['time'])
+            for k in ['time', 'Time']:
+                if k in event:
+                    event[k] = datetime.fromtimestamp(event[k])
             log.debug('Event: %s', event)
-            try:
-                if 'from' in event:
-                    data = client.inspect_container(event['id'])
-                else:
-                    data = client.inspect_image(event['id'])
-                self.data[event['id']] = data
-            except docker.errors.NotFound:
-                data = self.data[event['id']]
+            data = {}
+            i = get_id(event)
+            if i is not None:
+                try:
+                    if 'from' in event or 'From' in event:
+                        data = client.inspect_container(i)
+                    else:
+                        data = client.inspect_image(i)
+                    self.data[i] = data
+                except docker.errors.NotFound:
+                    data = self.data[i]
             self.handle(event, data)
 
     def handle(self, event, data):
         for handler in self.handlers:
-            handler(event, self.data[event['id']])
+            handler(event, data)
 
     @staticmethod
     def default(event, data):
@@ -45,13 +49,26 @@ class Ahab(object):
         messages['stop'] = 'Away into the depths:'
         messages['destroy'] = 'Away into the depths:'
         messages['delete'] = 'Away into the depths:'
-        message = messages[event['status']] + ' %s/%s'
-        log.info(message, event['status'], event['id'])
+        status = get_status(event)
+        message = messages[status] + ' %s/%s'
+        log.info(message, status, get_id(event))
         log.debug('"data": %s', form_json(data))
 
 
 def form_json(data):
     return json.dumps(data, sort_keys=True, indent=4, separators=(',', ': '))
+
+
+def get_status(event):
+    for k in ['status', 'Status']:
+        if k in event:
+            return event[k]
+
+
+def get_id(event):
+    for k in ['id', 'ID', 'Id']:
+        if k in event:
+            return event[k]
 
 
 __version__ = version()
