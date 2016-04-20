@@ -4,9 +4,9 @@
 from argh import arg, dispatch_command
 import sys
 
+from magiclog import log
+
 from . import Ahab
-from .logger import log
-from . import logger
 
 
 @arg('connection', help='Docker connection string.', nargs='?',
@@ -14,7 +14,7 @@ from . import logger
 @arg('--console', help='Override default console log level.')
 @arg('--syslog', help='Override default syslog log level.')
 def ahab(connection, console=None, syslog=None):
-    logger.configure(console=console, syslog=syslog)
+    log.configure(stderr=console, syslog=syslog)
     log.info('Under weigh.')
     try:
         Ahab(connection).listen()

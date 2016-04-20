@@ -5,9 +5,9 @@ from datetime import datetime
 import json
 
 import docker
+from magiclog import log
 
 from .version import version
-from .logger import log
 
 
 class Ahab(object):
