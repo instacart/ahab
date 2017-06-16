@@ -10,6 +10,9 @@ from magiclog import log
 from .version import version
 
 
+docker_client_version = '1.24'
+
+
 class Ahab(object):
     def __init__(self, url='unix:///var/run/docker.sock', handlers=[]):
         self.url = url
@@ -17,7 +20,7 @@ class Ahab(object):
         self.data = defaultdict(dict)
 
     def listen(self):
-        client = docker.Client(base_url=self.url)
+        client = docker.APIClient(base_url=self.url, version=docker_client_version)
         for event in client.events(decode=True):
             for k in ['time', 'Time']:
                 if k in event:
