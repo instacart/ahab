@@ -14,14 +14,20 @@ docker_client_version = '1.24'
 
 
 class Ahab(object):
-    def __init__(self, url='unix:///var/run/docker.sock', handlers=[]):
+    def __init__(self,
+                 url='unix:///var/run/docker.sock', handlers=[], since=None):
         self.url = url
         self.handlers = handlers if len(handlers) > 0 else [Ahab.default]
         self.data = defaultdict(dict)
+        self.since = since
 
     def listen(self):
         client = docker.APIClient(base_url=self.url, version=docker_client_version)
-        for event in client.events(decode=True):
+
+        # the 'since' flag is to start reading from a particular event.
+        # see the docker SDK docs:
+        # https://docker-py.readthedocs.io/en/stable/client.html#docker.client.DockerClient.events
+        for event in client.events(decode=True, since=self.since):
             for k in ['time', 'Time']:
                 if k in event:
                     event[k] = datetime.fromtimestamp(event[k])
@@ -38,6 +44,11 @@ class Ahab(object):
                 except docker.errors.NotFound:
                     data = self.data[i]
             self.handle(event, data)
+            # mark the last event seen so we can restart this listener
+            # without dropping events. the caller must be responsible for
+            # ensuring that handlers do not drop events, because they are
+            # fire-and-forget from this point.
+            self.since = get_time_nano(event)
 
     def handle(self, event, data):
         for handler in self.handlers:
@@ -72,6 +83,15 @@ def get_id(event):
     for k in ['id', 'ID', 'Id']:
         if k in event:
             return event[k]
+
+
+def get_time_nano(event):
+    time_nano = None
+    for k in ['timeNano', 'timenano']:
+        if k in event:
+            time_nano = event[k]
+            break
+    return time_nano
 
 
 __version__ = version()
