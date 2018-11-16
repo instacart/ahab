@@ -23,6 +23,10 @@ class Ahab(object):
 
     def listen(self):
         client = docker.APIClient(base_url=self.url, version=docker_client_version)
+
+        # the 'since' flag is to start reading from a particular event.
+        # see the docker SDK docs:
+        # https://docker-py.readthedocs.io/en/stable/client.html#docker.client.DockerClient.events
         for event in client.events(decode=True, since=self.since):
             for k in ['time', 'Time']:
                 if k in event:
